@@ -3455,8 +3455,9 @@ void Arguments::fix_appclasspath() {
       src ++;
     }
 
-    char* copy = AllocateHeap(strlen(src) + 1, mtInternal);
-    strncpy(copy, src, strlen(src) + 1);
+    size_t  copylen = strlen(src) + 1;
+    char* copy = AllocateHeap(copylen, mtInternal);
+    strncpy(copy, src, copylen);
 
     // trim all trailing empty paths
     for (char* tail = copy + strlen(copy) - 1; tail >= copy && *tail == separator; tail--) {
@@ -3843,9 +3844,10 @@ static char* get_shared_archive_path() {
       strncat(shared_archive_path, "classes.jsa", 11);
     }
   } else {
-    shared_archive_path = NEW_C_HEAP_ARRAY(char, strlen(SharedArchiveFile) + 1, mtInternal);
+    size_t copylen = strlen(SharedArchiveFile) + 1;
+    shared_archive_path = NEW_C_HEAP_ARRAY(char, copylen, mtInternal);
     if (shared_archive_path != NULL) {
-      strncpy(shared_archive_path, SharedArchiveFile, strlen(SharedArchiveFile) + 1);
+      strncpy(shared_archive_path, SharedArchiveFile, copylen);
     }
   }
   return shared_archive_path;
