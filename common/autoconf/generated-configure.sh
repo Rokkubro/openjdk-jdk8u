@@ -844,6 +844,7 @@ JDK_MICRO_VERSION
 JDK_MINOR_VERSION
 JDK_MAJOR_VERSION
 USER_RELEASE_SUFFIX
+ENABLE_JFR
 COMPRESS_JARS
 UNLIMITED_CRYPTO
 CACERTS_FILE
@@ -1012,6 +1013,7 @@ infodir
 docdir
 oldincludedir
 includedir
+runstatedir
 localstatedir
 sharedstatedir
 sysconfdir
@@ -1058,6 +1060,7 @@ enable_headful
 enable_hotspot_test_in_build
 with_cacerts_file
 enable_unlimited_crypto
+enable_jfr
 with_milestone
 with_update_version
 with_user_release_suffix
@@ -1253,6 +1256,7 @@ datadir='${datarootdir}'
 sysconfdir='${prefix}/etc'
 sharedstatedir='${prefix}/com'
 localstatedir='${prefix}/var'
+runstatedir='${localstatedir}/run'
 includedir='${prefix}/include'
 oldincludedir='/usr/include'
 docdir='${datarootdir}/doc/${PACKAGE_TARNAME}'
@@ -1505,6 +1509,15 @@ do
   | -silent | --silent | --silen | --sile | --sil)
     silent=yes ;;
 
+  -runstatedir | --runstatedir | --runstatedi | --runstated \
+  | --runstate | --runstat | --runsta | --runst | --runs \
+  | --run | --ru | --r)
+    ac_prev=runstatedir ;;
+  -runstatedir=* | --runstatedir=* | --runstatedi=* | --runstated=* \
+  | --runstate=* | --runstat=* | --runsta=* | --runst=* | --runs=* \
+  | --run=* | --ru=* | --r=*)
+    runstatedir=$ac_optarg ;;
+
   -sbindir | --sbindir | --sbindi | --sbind | --sbin | --sbi | --sb)
     ac_prev=sbindir ;;
   -sbindir=* | --sbindir=* | --sbindi=* | --sbind=* | --sbin=* \
@@ -1642,7 +1655,7 @@ fi
 for ac_var in	exec_prefix prefix bindir sbindir libexecdir datarootdir \
 		datadir sysconfdir sharedstatedir localstatedir includedir \
 		oldincludedir docdir infodir htmldir dvidir pdfdir psdir \
-		libdir localedir mandir
+		libdir localedir mandir runstatedir
 do
   eval ac_val=\$$ac_var
   # Remove trailing slashes.
@@ -1795,6 +1808,7 @@ Fine tuning of the installation directories:
   --sysconfdir=DIR        read-only single-machine data [PREFIX/etc]
   --sharedstatedir=DIR    modifiable architecture-independent data [PREFIX/com]
   --localstatedir=DIR     modifiable single-machine data [PREFIX/var]
+  --runstatedir=DIR       modifiable per-process data [LOCALSTATEDIR/run]
   --libdir=DIR            object code libraries [EPREFIX/lib]
   --includedir=DIR        C header files [PREFIX/include]
   --oldincludedir=DIR     C header files for non-gcc [/usr/include]
@@ -1843,6 +1857,7 @@ Optional Features:
                           run the Queens test after Hotspot build [disabled]
   --enable-unlimited-crypto
                           Enable unlimited crypto policy [disabled]
+  --enable-jfr            Enable Java Flight Recorder support [disabled]
   --disable-debug-symbols disable generation of debug symbols [enabled]
   --disable-zip-debug-info
                           disable zipping of debug-info files [enabled]
@@ -3912,7 +3927,7 @@ pkgadd_help() {
 
 
 #
-# Copyright (c) 2011, 2019, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2011, 2020, Oracle and/or its affiliates. All rights reserved.
 # DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 #
 # This code is free software; you can redistribute it and/or modify it
@@ -4379,7 +4394,7 @@ VS_SDK_PLATFORM_NAME_2017=
 #CUSTOM_AUTOCONF_INCLUDE
 
 # Do not change or remove the following line, it is needed for consistency checks:
-DATE_WHEN_GENERATED=1580709484
+DATE_WHEN_GENERATED=1589212500
 
 ###############################################################################
 #
@@ -19803,6 +19818,36 @@ fi
 
 
 
+  ###############################################################################
+  #
+  # Enable or disable JFR
+  #
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether to build jfr" >&5
+$as_echo_n "checking whether to build jfr... " >&6; }
+  # Check whether --enable-jfr was given.
+if test "${enable_jfr+set}" = set; then :
+  enableval=$enable_jfr;
+else
+  enable_jfr=auto
+fi
+
+  if test "x$enable_jfr" = "xno" -o "x$enable_jfr" = "xauto"; then
+    ENABLE_JFR=false
+  elif test "x$enable_jfr" = "xyes" ; then
+    if test "x$JVM_VARIANT_MINIMAL1" = "xtrue" -o "x$JVM_VARIANT_ZERO" = "xtrue"; then
+      as_fn_error $? "cannot enable JFR on minimal1 VM or zero build" "$LINENO" 5
+    elif test "x$OPENJDK_TARGET_OS" = xaix; then
+      as_fn_error $? "AIX does not support JFR" "$LINENO" 5
+    else
+      ENABLE_JFR=true
+    fi
+  else
+    as_fn_error $? "--enable-jfr must either be set to yes or no" "$LINENO" 5
+  fi
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ENABLE_JFR" >&5
+$as_echo "$ENABLE_JFR" >&6; }
+
+
 
   # Source the version numbers
   . $AUTOCONF_DIR/version-numbers
@@ -27955,7 +28000,7 @@ $as_echo "$as_me: The result from running with --version was: \"$COMPILER_VERSIO
     COMPILER_VERSION_STRING=`$ECHO $COMPILER_VERSION_OUTPUT | \
         $SED -e 's/ *Copyright .*//'`
     COMPILER_VERSION_NUMBER=`$ECHO $COMPILER_VERSION_OUTPUT | \
-        $SED -e 's/^.* \([1-9]\.[0-9.]*\) .*$/\1/'`
+        $SED -e 's/^.* \([1-9][0-9]*\.[0-9.]*\) .*$/\1/'`
   elif test  "x$TOOLCHAIN_TYPE" = xclang; then
     # clang --version output typically looks like
     #    Apple LLVM version 5.0 (clang-500.2.79) (based on LLVM 3.3svn)
@@ -29696,7 +29741,7 @@ $as_echo "$as_me: The result from running with --version was: \"$COMPILER_VERSIO
     COMPILER_VERSION_STRING=`$ECHO $COMPILER_VERSION_OUTPUT | \
         $SED -e 's/ *Copyright .*//'`
     COMPILER_VERSION_NUMBER=`$ECHO $COMPILER_VERSION_OUTPUT | \
-        $SED -e 's/^.* \([1-9]\.[0-9.]*\) .*$/\1/'`
+        $SED -e 's/^.* \([1-9][0-9]*\.[0-9.]*\) .*$/\1/'`
   elif test  "x$TOOLCHAIN_TYPE" = xclang; then
     # clang --version output typically looks like
     #    Apple LLVM version 5.0 (clang-500.2.79) (based on LLVM 3.3svn)
@@ -41236,6 +41281,7 @@ $as_echo "$ac_cv_c_bigendian" >&6; }
 
   if test "x$TOOLCHAIN_TYPE" = xgcc; then
     PICFLAG="-fPIC"
+    PIEFLAG="-fPIE"
     C_FLAG_REORDER=''
     CXX_FLAG_REORDER=''
 
@@ -41256,6 +41302,7 @@ $as_echo "$ac_cv_c_bigendian" >&6; }
     fi
   elif test "x$TOOLCHAIN_TYPE" = xsolstudio; then
     PICFLAG="-KPIC"
+    PIEFLAG=""
     C_FLAG_REORDER='-xF'
     CXX_FLAG_REORDER='-xF'
     SHARED_LIBRARY_FLAGS="-G"
@@ -41265,6 +41312,7 @@ $as_echo "$ac_cv_c_bigendian" >&6; }
     SET_SHARED_LIBRARY_MAPFILE='-M$1'
   elif test "x$TOOLCHAIN_TYPE" = xxlc; then
     PICFLAG="-qpic=large"
+    PIEFLAG=""
     C_FLAG_REORDER=''
     CXX_FLAG_REORDER=''
     SHARED_LIBRARY_FLAGS="-qmkshrobj"
@@ -41274,6 +41322,7 @@ $as_echo "$ac_cv_c_bigendian" >&6; }
     SET_SHARED_LIBRARY_MAPFILE=''
   elif test "x$TOOLCHAIN_TYPE" = xmicrosoft; then
     PICFLAG=""
+    PIEFLAG=""
     C_FLAG_REORDER=''
     CXX_FLAG_REORDER=''
     SHARED_LIBRARY_FLAGS="-LD"
@@ -42088,8 +42137,8 @@ $as_echo "$supports" >&6; }
   CXXFLAGS_JDKLIB="$CCXXFLAGS_JDK $CXXFLAGS_JDK $PICFLAG $CXXFLAGS_JDKLIB_EXTRA "
 
   # Executable flags
-  CFLAGS_JDKEXE="$CCXXFLAGS_JDK $CFLAGS_JDK"
-  CXXFLAGS_JDKEXE="$CCXXFLAGS_JDK $CXXFLAGS_JDK"
+  CFLAGS_JDKEXE="$CCXXFLAGS_JDK $CFLAGS_JDK $PIEFLAG"
+  CXXFLAGS_JDKEXE="$CCXXFLAGS_JDK $CXXFLAGS_JDK $PIEFLAG"
 
 
 
@@ -42171,6 +42220,13 @@ $as_echo "$supports" >&6; }
     LDFLAGS_JDKEXE="${LDFLAGS_JDK}"
     if test "x$OPENJDK_TARGET_OS" = xlinux; then
       LDFLAGS_JDKEXE="$LDFLAGS_JDKEXE -Xlinker --allow-shlib-undefined"
+    fi
+    if test "x$TOOLCHAIN_TYPE" = xgcc; then
+      # Enabling pie on 32 bit builds prevents the JVM from allocating a continuous
+      # java heap.
+      if test "x$OPENJDK_TARGET_CPU_BITS" != "x32"; then
+        LDFLAGS_JDKEXE="$LDFLAGS_JDKEXE -pie"
+      fi
     fi
   fi
 
